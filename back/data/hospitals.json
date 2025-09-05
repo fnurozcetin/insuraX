@@ -1,0 +1,75 @@
+{
+  "hospitals": [
+    {
+      "id": "1",
+      "name": "Medicana Hastanesi",
+      "wallet": "0x1234567890123456789012345678901234567890",
+      "address": "İstanbul, Türkiye",
+      "phone": "+90 212 123 45 67",
+      "email": "info@medicana.com",
+      "services": [],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Acıbadem Hastanesi",
+      "wallet": "0x2345678901234567890123456789012345678901",
+      "address": "Ankara, Türkiye",
+      "phone": "+90 312 234 56 78",
+      "email": "info@acibadem.com",
+      "services": [],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "1",
+      "name": "Medicana Muayene",
+      "type": "muayene",
+      "limit": 5,
+      "remainingLimit": 5,
+      "price": 500,
+      "hospitalWallet": "0x1234567890123456789012345678901234567890",
+      "hospitalName": "Medicana Hastanesi",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "2",
+      "name": "Medicana MR Görüntüleme",
+      "type": "mr",
+      "limit": 3,
+      "remainingLimit": 3,
+      "price": 1200,
+      "hospitalWallet": "0x1234567890123456789012345678901234567890",
+      "hospitalName": "Medicana Hastanesi",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "3",
+      "name": "Acıbadem Radyoloji",
+      "type": "radyoloji",
+      "limit": 4,
+      "remainingLimit": 4,
+      "price": 800,
+      "hospitalWallet": "0x2345678901234567890123456789012345678901",
+      "hospitalName": "Acıbadem Hastanesi",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "",
+      "type": "muayene",
+      "limit": "3",
+      "price": "20000",
+      "hospitalWallet": "lsldknaskdnfaslşdkffnasşlfasf",
+      "hospitalName": "Medicana",
+      "id": "1756930259039",
+      "createdAt": "2025-09-03T20:10:59.039Z",
+      "updatedAt": "2025-09-03T20:10:59.039Z"
+    }
+  ]
+}
