@@ -1,0 +1,87 @@
+.doctor-signup-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 0;
+}
+
+.doctor-signup-container .card {
+  border: none;
+  border-radius: 15px;
+}
+
+.doctor-signup-container .card-header {
+  border-radius: 15px 15px 0 0 !important;
+  border: none;
+}
+
+.doctor-signup-container .form-control {
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 12px 15px;
+  transition: all 0.3s ease;
+}
+
+.doctor-signup-container .form-control:focus {
+  border-color: #ffc107;
+  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.doctor-signup-container .btn {
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.doctor-signup-container .btn-warning {
+  background: linear-gradient(45deg, #ffc107, #ff8c00);
+  border: none;
+  color: #212529;
+}
+
+.doctor-signup-container .btn-warning:hover {
+  background: linear-gradient(45deg, #ff8c00, #ffc107);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+}
+
+.doctor-signup-container .btn-outline-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+}
+
+.doctor-signup-container .form-text {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-top: 5px;
+}
+
+/* Arksigner Styles */
+.doctor-signup-container .arksigner-status {
+  margin-bottom: 1rem;
+}
+
+.doctor-signup-container .input-group .btn {
+  border-radius: 0 10px 10px 0;
+  border-left: none;
+}
+
+.doctor-signup-container .input-group .form-control {
+  border-radius: 10px 0 0 10px;
+}
+
+.doctor-signup-container .input-group .form-control:focus {
+  border-color: #ffc107;
+  box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.doctor-signup-container .alert {
+  border-radius: 10px;
+  border: none;
+  font-weight: 500;
+}
+
+.doctor-signup-container .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

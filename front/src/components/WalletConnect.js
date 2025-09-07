@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import './WalletConnect.css';
 
-const WalletConnect = ({ onWalletConnected, onSignUpClick }) => {
+const WalletConnect = ({ onWalletConnected, onSignUpClick, onTestClick }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
 
+  //connect meta mask
   const connectMetaMask = async () => {
     setIsConnecting(true);
     setError('');
     
     try {
       if (!window.ethereum) {
-        throw new Error('MetaMask yüklü değil. Lütfen MetaMask yükleyin.');
+        throw new Error('MetaMask is not installed. Please install MetaMask first.');
       }
 
       const accounts = await window.ethereum.request({ 
@@ -30,8 +31,8 @@ const WalletConnect = ({ onWalletConnected, onSignUpClick }) => {
         onWalletConnected(walletInfo);
       }
     } catch (error) {
-      console.error('MetaMask bağlantı hatası:', error);
-      setError(error.message || 'Cüzdan bağlantısında hata oluştu');
+      console.error('MetaMask connection error:', error);
+      setError(error.message || 'Wallet connection error');
     } finally {
       setIsConnecting(false);
     }
@@ -51,16 +52,16 @@ const WalletConnect = ({ onWalletConnected, onSignUpClick }) => {
         <div className="wallet-connect-card">
           <div className="logo-section">
             <div className="logo-icon">
-              <i className="fas fa-shield-alt"></i>
+              <img src={process.env.PUBLIC_URL + '/logo.jpg'} alt="InsuraX Logo" />
             </div>
-            <h1 className="app-title">PolicyChain</h1>
-            <p className="app-subtitle">Merkeziyetsiz Sağlık Sigortası Platformu</p>
+            <h1 className="app-title">InsuraX</h1>
+            <p className="app-subtitle">Decentralized Health Insurance Platform</p>
           </div>
 
           <div className="connect-section">
-            <h2 className="connect-title">Cüzdanınızı Bağlayın</h2>
+            <h2 className="connect-title">Connect Your Wallet</h2>
             <p className="connect-description">
-              PolicyChain'e erişim için lütfen cüzdanınızı bağlayın
+              Please connect your wallet to access InsuraX.
             </p>
 
             {error && (
@@ -81,7 +82,7 @@ const WalletConnect = ({ onWalletConnected, onSignUpClick }) => {
                 </div>
                 <div className="wallet-info">
                   <h3>MetaMask</h3>
-                  <p>En popüler Ethereum cüzdanı</p>
+                  <p>Most popular Ethereum wallet</p>
                 </div>
                 {isConnecting && (
                   <div className="loading-spinner">
@@ -93,39 +94,48 @@ const WalletConnect = ({ onWalletConnected, onSignUpClick }) => {
 
             <div className="security-note">
               <i className="fas fa-lock"></i>
-              <p>Bağlantınız güvenli ve şifrelenmiştir. Özel anahtarlarınız hiçbir zaman paylaşılmaz.</p>
+              <p>Your connection is secure and encrypted. Your private keys will never be shared.</p>.
             </div>
 
             <div className="text-center mt-4">
-              <p className="text-muted mb-3">Henüz hesabınız yok mu?</p>
-              <button 
-                className="btn btn-outline-primary"
-                onClick={onSignUpClick}
-              >
-                <i className="fas fa-user-plus me-2"></i>
-                Yeni Hasta Kaydı
-              </button>
+              <p className="text-muted mb-3">Don't have an account yet?</p>
+              <div className="d-grid gap-2">
+                <button 
+                  className="btn btn-outline-primary"
+                  onClick={onSignUpClick}
+                >
+                  <i className="fas fa-user-plus me-2"></i>
+                  New Patient Registration
+                </button>
+                <button 
+                  className="btn btn-outline-info"
+                  onClick={onTestClick}
+                >
+                  <i className="fas fa-flask me-2"></i>
+                  Test Panel (Developer)
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="features-section">
-            <h3>Neden PolicyChain?</h3>
+            <h3>Why InsuraX?</h3>
             <div className="features-grid">
               <div className="feature">
                 <i className="fas fa-shield-alt"></i>
-                <span>Güvenli ve Şeffaf</span>
+                <span>Secure and Transparent</span>
               </div>
               <div className="feature">
                 <i className="fas fa-coins"></i>
-                <span>Düşük Maliyetli</span>
+                <span>Low Cost</span>
               </div>
               <div className="feature">
                 <i className="fas fa-clock"></i>
-                <span>Hızlı İşlemler</span>
+                <span>Fast Transactions</span>
               </div>
               <div className="feature">
                 <i className="fas fa-users"></i>
-                <span>Merkeziyetsiz</span>
+                <span>Decentralized</span>
               </div>
             </div>
           </div>

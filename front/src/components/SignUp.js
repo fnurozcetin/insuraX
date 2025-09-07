@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import RiskAnalysis from './RiskAnalysis';
 import './SignUp.css';
 
 const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
@@ -9,6 +10,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
   const [isFetchingData, setIsFetchingData] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [localWalletInfo, setLocalWalletInfo] = useState(walletInfo || null);
+  const [riskData, setRiskData] = useState(null);
 
   const showAlert = (message, type) => {
     const alert = { id: Date.now(), message, type };
@@ -18,10 +20,11 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
     }, 5000);
   };
 
+  //wallet connect
   const connectWallet = async () => {
     try {
       if (!window.ethereum) {
-        showAlert('MetaMask bulunamadı. Lütfen MetaMask kurun.', 'danger');
+        showAlert('MetaMask not found. Please install MetaMask.', 'danger');
         return;
       }
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -33,13 +36,14 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       };
       setLocalWalletInfo(info);
       setCurrentStep(2);
-      showAlert('Cüzdan başarıyla bağlandı!', 'success');
+      showAlert('Wallet connected successfully!', 'success');
     } catch (err) {
       console.error('Wallet connect error:', err);
-      showAlert('Cüzdan bağlanırken bir hata oluştu veya işlem iptal edildi.', 'danger');
+      showAlert('Wallet connection error or operation cancelled.', 'danger');
     }
   };
 
+  //fetch institutional data from hospital
   const fetchInstitutionalData = async () => {
     try {
       setIsFetchingData(true);
@@ -47,7 +51,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       await new Promise((resolve, reject) => {
         setTimeout(() => {
           if (Math.random() < 0.1) {
-            reject(new Error('Kurumsal veri sağlayıcılarına bağlanılamadı. Lütfen tekrar deneyin.'));
+            reject(new Error('Institutional data providers are not connected. Please try again.'));
           } else {
             resolve();
           }
@@ -57,21 +61,21 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       const mockData = {
         tcKimlik: '12345678901',
         hastaneKayitlari: [
-          { tarih: '2024-01-15', hastane: 'Acıbadem Hastanesi', tani: 'Rutin kontrol', doktor: 'Dr. Mehmet Yılmaz' },
-          { tarih: '2023-11-22', hastane: 'Memorial Hastanesi', tani: 'Grip tedavisi', doktor: 'Dr. Ayşe Kaya' }
+          { tarih: '2024-01-15', hastane: 'Hospital A', tani: 'M51.1', doktor: 'Dr. Mehmet Yılmaz' },
+          { tarih: '2023-11-22', hastane: 'Hospital B', tani: 'M54.5', doktor: 'Dr. Ayşe Kaya' }
         ],
         kronikHastaliklar: [],
-        riskFaktorleri: ['Sigara kullanımı yok', 'Düzenli spor yapıyor', 'Aile geçmişinde diyabet var']
+        riskFaktorleri: ['No smoking', 'Regular exercise', 'Family history of diabetes']  
       };
       
       setInstitutionalData(mockData);
       setIsFetchingData(false);
-      showAlert('Kurumsal sağlık verileri başarıyla alındı!', 'success');
+      showAlert('Institutional health data fetched successfully!', 'success');
       
     } catch (error) {
       setIsFetchingData(false);
       console.error('Data fetching error:', error);
-      showAlert(error.message || 'Kurumsal veriler alınırken bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
+      showAlert(error.message || 'Institutional data fetching error. Please try again.', 'danger');
     }
   };
 
@@ -83,8 +87,13 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
     setTimeout(() => {
       setCurrentStep(3);
       setIsProcessing(false);
-      showAlert('Kurumsal veriler analiz edildi! Size özel prim teklifiniz hazır.', 'success');
+      showAlert('Institutional data analyzed! You can now perform risk analysis.', 'success');
     }, 3000);
+  };
+
+  const handleRiskCalculated = (data) => {
+    setRiskData(data);
+    showAlert('Risk analysis completed! Your premium offer is ready.', 'success');
   };
 
   const completeRegistration = async () => {
@@ -94,7 +103,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       await new Promise((resolve, reject) => {
         setTimeout(() => {
           if (Math.random() < 0.05) {
-            reject(new Error('Blockchain işlemi başarısız oldu. Lütfen tekrar deneyin.'));
+            reject(new Error('Blockchain operation failed. Please try again.'));
           } else {
             resolve();
           }
@@ -103,12 +112,12 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       
       setCurrentStep(4);
       setIsProcessing(false);
-      showAlert('Kaydınız başarıyla tamamlandı! PolicyChain ailesine hoş geldiniz.', 'success');
+      showAlert('Your registration has been completed successfully! Welcome to InsuraX family.', 'success');
       
     } catch (error) {
       setIsProcessing(false);
       console.error('Registration error:', error);
-      showAlert(error.message || 'Kayıt işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.', 'danger');
+      showAlert(error.message || 'Registration error. Please try again.', 'danger');
     }
   };
 
@@ -141,7 +150,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
         <div className="container">
           <button className="navbar-brand btn btn-link text-decoration-none" onClick={onBackToLogin}>
             <i className="fas fa-shield-alt me-2"></i>
-            PolicyChain
+            InsuraX
           </button>
           <div className="d-flex">
             {(localWalletInfo || walletInfo)?.address && (
@@ -151,7 +160,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
             )}
             <button className="btn btn-outline-light btn-sm" onClick={onBackToLogin}>
               <i className="fas fa-arrow-left me-1"></i>
-              Geri
+              Back
             </button>
           </div>
         </div>
@@ -160,8 +169,8 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
       {/* Hero Section */}
       <div className="hero text-center">
         <div className="container">
-          <h1 className="display-4 fw-bold">PolicyChain'e Hoş Geldiniz</h1>
-          <p className="lead">Merkeziyetsiz sağlık sigortası ile geleceğinizi güvence altına alın</p>
+          <h1 className="display-4 fw-bold">Welcome to InsuraX</h1>
+          <p className="lead">Secure your future with decentralized health insurance</p>
         </div>
       </div>
 
@@ -171,47 +180,47 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
           <div className="col-md-10">
             <div className="card shadow-lg">
               <div className="card-header bg-primary text-white">
-                <h3 className="card-title"><i className="fas fa-user-plus me-2"></i>Yeni Hasta Kaydı</h3>
+                <h3 className="card-title"><i className="fas fa-user-plus me-2"></i>New Patient Registration</h3>
               </div>
               <div className="card-body">
                 {/* Registration Steps */}
                 <div className="registration-steps">
                   <div className={getStepClass(1)}>
                     <div className="step-number">1</div>
-                    <h5>Cüzdan Bağlama</h5>
+                    <h5>Wallet Connection</h5>
                   </div>
                   <div className={getStepClass(2)}>
                     <div className="step-number">2</div>
-                    <h5>Sağlık Verileri</h5>
+                    <h5>Institutional Health Data</h5>
                   </div>
                   <div className={getStepClass(3)}>
                     <div className="step-number">3</div>
-                    <h5>Risk Analizi</h5>
+                    <h5>Risk Analysis</h5>
                   </div>
                   <div className={getStepClass(4)}>
                     <div className="step-number">4</div>
-                    <h5>Kayıt Tamamlama</h5>
+                    <h5>Registration Completion</h5>
                   </div>
                 </div>
 
                 {/* Step 1: Wallet Connection */}
                 {currentStep === 1 && (
                   <div className="step-content">
-                    <h4 className="mb-4">Cüzdan Bağlantısı</h4>
-                    <p>PolicyChain'e kayıt olmak için öncelikle cüzdanınızı bağlamanız gerekmektedir. Cüzdanınız, kimliğinizi doğrulamak ve işlemleri güvenli bir şekilde gerçekleştirmek için kullanılacaktır.</p>
+                    <h4 className="mb-4">Wallet Connection</h4>
+                    <p>To register for InsuraX, you need to connect your wallet first. Your wallet will be used to verify your identity and perform transactions securely.</p>
                     
                     <div className="my-4 p-4 bg-light rounded">
-                      <h5><i className="fas fa-info-circle me-2"></i>Neden cüzdan bağlamalıyım?</h5>
+                      <h5><i className="fas fa-info-circle me-2"></i>Why do I need to connect my wallet?</h5>
                       <ul className="mb-0">
-                        <li>Kimliğinizin doğrulanması için</li>
-                        <li>Güvenli işlem yapabilmek için</li>
-                        <li>Poliçe yönetimi ve talep işlemleri için</li>
+                        <li>To verify your identity</li>
+                        <li>To perform transactions securely</li>
+                        <li>To manage your policy and claims</li>
                       </ul>
                     </div>
                     
                     <div className="text-center mt-4">
                       <button className="btn btn-primary btn-lg" onClick={connectWallet}>
-                        <i className="fas fa-plug me-2"></i>Cüzdanı Bağla
+                        <i className="fas fa-plug me-2"></i>Connect Wallet
                       </button>
                     </div>
                   </div>
@@ -220,8 +229,8 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                 {/* Step 2: Institutional Health Data */}
                 {currentStep === 2 && (
                   <div className="step-content">
-                    <h4 className="mb-4">Kurumsal Sağlık Verilerinizi Alın</h4>
-                    <p>Risk analizi için TC Kimlik numaranız ile hastane ve diğer sağlık kurumlarından verilerinizi güvenli şekilde alacağız. Bu veriler blockchain üzerinde şifrelenmiş olarak saklanacaktır.</p>
+                    <h4 className="mb-4">Institutional Health Data</h4>
+                    <p>We will securely retrieve your institutional health data from hospitals and other health institutions. These data will be stored encrypted on the blockchain.</p>
                     
                     <div className="institutional-data-fetch my-4">
                       <div className="row justify-content-center">
@@ -229,8 +238,8 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                           <div className="card border-primary">
                             <div className="card-body text-center">
                               <i className="fas fa-hospital text-primary" style={{ fontSize: '3rem' }}></i>
-                              <h5 className="mt-3">Hastane Kayıtları</h5>
-                              <p className="text-muted">Özel ve devlet hastanelerinden tıbbi geçmişiniz</p>
+                              <h5 className="mt-3">Hospital Records</h5>
+                              <p className="text-muted">Your medical history from private and public hospitals</p>
                             </div>
                           </div>
                         </div>
@@ -240,16 +249,16 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                         {!institutionalData && !isFetchingData && (
                           <button className="btn btn-primary btn-lg" onClick={fetchInstitutionalData}>
                             <i className="fas fa-download me-2"></i>
-                            Kurumsal Verilerimi Al
+                            Fetch Institutional Data
                           </button>
                         )}
                         
                         {isFetchingData && (
                           <div className="text-center">
                             <div className="spinner-border text-primary" role="status">
-                              <span className="visually-hidden">Veriler alınıyor...</span>
+                              <span className="visually-hidden">Fetching data...</span>
                             </div>
-                            <p className="mt-3">Kurumsal verileriniz alınıyor...</p>
+                            <p className="mt-3">Fetching institutional data...</p>
                           </div>
                         )}
                       </div>
@@ -258,13 +267,13 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                     {institutionalData && (
                       <div className="my-4">
                         <div className="text-center mb-3">
-                          <h5><i className="fas fa-check-circle me-2 text-success"></i>Alınan Veriler</h5>
+                          <h5><i className="fas fa-check-circle me-2 text-success"></i>Fetched Data</h5>
                         </div>
                         <div className="row justify-content-center">
                           <div className="col-md-6">
                             <div className="card">
                               <div className="card-header bg-info text-white">
-                                <h6 className="mb-0">Hastane Kayıtları</h6>
+                                <h6 className="mb-0">Hospital Records</h6>
                               </div>
                               <div className="card-body">
                                 <ul className="list-group list-group-flush">
@@ -272,7 +281,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                                     <li key={index} className="list-group-item d-flex justify-content-between">
                                       <div>
                                         <strong>{kayit.hastane}</strong><br/>
-                                        <small className="text-muted">{kayit.tarih} - {kayit.tanı}</small>
+                                        <small className="text-muted">{kayit.tarih} - {kayit.tani}</small>
                                       </div>
                                       <span className="badge bg-primary">{kayit.icdKodu}</span>
                                     </li>
@@ -288,9 +297,9 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                     {institutionalData && (
                       <>
                         <div className="consent-box">
-                          <h5>Kurumsal Veri Kullanım İzni</h5>
-                          <p>PolicyChain'e kurumsal sağlık sistemlerinden aldığım verilerimi blockchain üzerinde şifrelenmiş olarak saklaması ve risk analizi yapması için izin veriyorum. Verilerim yalnızca prim hesaplama amacıyla kullanılacak olup, üçüncü taraflarla paylaşılmayacaktır.</p>
-                          <p>Kurumsal verilerimin blockchain üzerinde güvenli saklanması ve yalnızca belirtilen amaçlar doğrultusunda kullanılmasını kabul ediyorum.</p>
+                          <h5>Data Usage Permission</h5>
+                          <p>InsuraX'e institutional health system from which I obtained data from the blockchain encrypted and stored and risk analysis is permitted. My data will only be used for the purpose of calculating the premium and will not be shared with third parties.</p>
+                          <p>I have read and consent to the institutional data usage permission above.</p>
                         </div>
                         
                         <div className="form-check my-4">
@@ -302,7 +311,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                             onChange={(e) => setDataConsent(e.target.checked)}
                           />
                           <label className="form-check-label" htmlFor="data-consent">
-                            Yukarıdaki kurumsal veri kullanım iznini okudum ve kabul ediyorum
+                            I have read and consent to the institutional data usage permission above
                           </label>
                         </div>
                         
@@ -314,11 +323,11 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                           >
                             {isProcessing ? (
                               <>
-                                <span className="loading"></span> Veriler analiz ediliyor...
+                                <span className="loading"></span> Analyzing data...
                               </>
                             ) : (
                               <>
-                                <i className="fas fa-chart-line me-2"></i>Kurumsal Verileri Analiz Et
+                                <i className="fas fa-chart-line me-2"></i>Analyze Institutional Data
                               </>
                             )}
                           </button>
@@ -331,73 +340,34 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                 {/* Step 3: Risk Analysis */}
                 {currentStep === 3 && (
                   <div className="step-content">
-                    <h4 className="mb-4">Risk Analizi Sonucunuz</h4>
-                    <p>Sağlık verilerinizin analizi tamamlandı. Size özel prim teklifimiz aşağıda belirtilmiştir.</p>
+                    <h4 className="mb-4">Risk Analysis and Premium Calculation</h4>
+                    <p>The analysis of your health data has been completed. Now let's perform a detailed risk analysis and calculate your premium offer.</p>
                     
-                    <div className="row mt-5">
-                      <div className="col-md-6">
-                        <div className="card">
-                          <div className="card-header bg-info text-white">
-                            <h5 className="card-title mb-0">Risk Profiliniz</h5>
-                          </div>
-                          <div className="card-body">
-                            <div className="risk-indicator">
-                              <div className="risk-marker" style={{ left: '30%' }}></div>
-                            </div>
-                            <div className="d-flex justify-content-between">
-                              <span>Düşük Risk</span>
-                              <span>Orta Risk</span>
-                              <span>Yüksek Risk</span>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h6>Risk Değerlendirmesi:</h6>
-                              <p>Kurumsal verilerinize göre genel sağlık durumunuz iyi. Düzenli check-up geçmişiniz pozitif faktörler.</p>
-                              <div className="mt-3">
-                                <small className="text-muted">
-                                  <strong>Analiz edilen veriler:</strong><br/>
-                                  • {institutionalData?.hastaneKayitlari?.length || 0} hastane kaydı<br/>
-                                  • {institutionalData?.riskFaktorleri?.length || 0} risk faktörü değerlendirildi
-                                </small>
-                              </div>
-                            </div>
-                          </div>
+                    <RiskAnalysis 
+                      onRiskCalculated={handleRiskCalculated}
+                      onViewPolicy={() => {
+                        const infoToPass = localWalletInfo || walletInfo;
+                        onSignUpComplete(infoToPass);
+                      }}
+                    />
+                    
+                    {riskData && (
+                      <div className="mt-4">
+                        <div className="alert alert-success">
+                          <h5><i className="fas fa-check-circle me-2"></i>Risk Analysis Completed!</h5>
+                          <p>Your risk score: <strong>{riskData.riskScore}</strong> | Monthly premium: <strong>{riskData.premium} ETH</strong></p>
+                        </div>
+                        
+                        <div className="text-center mt-4">
+                          <button className="btn btn-success btn-lg me-3" onClick={completeRegistration}>
+                            <i className="fas fa-check me-2"></i>Accept and Complete Registration
+                          </button>
+                          <button className="btn btn-outline-secondary btn-lg" onClick={onBackToLogin}>
+                            <i className="fas fa-times me-2"></i>Reject
+                          </button>
                         </div>
                       </div>
-                      
-                      <div className="col-md-6">
-                        <div className="card">
-                          <div className="card-header bg-success text-white">
-                            <h5 className="card-title mb-0">Prim Teklifi</h5>
-                          </div>
-                          <div className="card-body">
-                            <div className="premium-display">
-                              <div className="premium-amount">0.05 ETH</div>
-                              <div className="text-muted">Aylık</div>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <h6>Poliçe Kapsamı:</h6>
-                              <ul>
-                                <li>Yılda 10 muayene</li>
-                                <li>5.000 TL ye kadar yıllık limit</li>
-                                <li>Acil durum kapsamı</li>
-                                <li>Check-up hizmeti</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center mt-5">
-                      <button className="btn btn-success btn-lg me-3" onClick={completeRegistration}>
-                        <i className="fas fa-check me-2"></i>Kabul Et ve Kaydı Tamamla
-                      </button>
-                      <button className="btn btn-outline-secondary btn-lg" onClick={onBackToLogin}>
-                        <i className="fas fa-times me-2"></i>Reddet
-                      </button>
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -406,16 +376,16 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                   <div className="step-content">
                     <div className="text-center py-5">
                       <i className="fas fa-check-circle text-success" style={{ fontSize: '5rem' }}></i>
-                      <h2 className="mt-4">Kaydınız Tamamlandı!</h2>
-                      <p className="lead">PolicyChain ailesine hoş geldiniz. Artık merkeziyetsiz sağlık sigortasının avantajlarından yararlanabilirsiniz.</p>
+                      <h2 className="mt-4">Your Registration is Complete!</h2>
+                      <p className="lead">Welcome to InsuraX family. Now you can take advantage of the advantages of decentralized health insurance.</p>
                       
                       <div className="row justify-content-center mt-5">
                         <div className="col-md-4 mb-4">
                           <div className="card">
                             <div className="card-body">
                               <i className="fas fa-file-invoice text-primary" style={{ fontSize: '3rem' }}></i>
-                              <h5 className="mt-3">Poliçenizi Görüntüleyin</h5>
-                              <p className="text-muted">Poliçe detaylarınızı inceleyin</p>
+                              <h5 className="mt-3">View Your Policy</h5>
+                              <p className="text-muted">View your policy details</p>
                             </div>
                           </div>
                         </div>
@@ -427,7 +397,7 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
                           console.log('Manual redirect - walletInfo:', infoToPass);
                           onSignUpComplete(infoToPass);
                         }}>
-                          Poliçemi Görüntüle
+                          View Your Policy
                         </button>
                       </div>
                     </div>
@@ -444,11 +414,11 @@ const SignUp = ({ walletInfo, onSignUpComplete, onBackToLogin }) => {
         <div className="container">
           <div className="row">
             <div className="col-md-6">
-              <h5>PolicyChain</h5>
-              <p>Merkeziyetsiz sağlık sigortası platformu</p>
+              <h5>InsuraX</h5>
+              <p>Decentralized health insurance platform</p>
             </div>
             <div className="col-md-6 text-end">
-              <p>© 2025 PolicyChain. Tüm hakları saklıdır.</p>
+              <p>© 2025 InsuraX All rights reserved.</p>
             </div>
           </div>
         </div>

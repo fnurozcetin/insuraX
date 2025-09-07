@@ -2,54 +2,112 @@ import React, { useState, useEffect } from 'react';
 import './HospitalManagement.css';
 
 const HospitalManagement = ({ walletInfo }) => {
-  const [activeTab, setActiveTab] = useState('hospitals');
-  const [hospitals, setHospitals] = useState([]);
+  const [activeTab, setActiveTab] = useState('services');
   const [services, setServices] = useState([]);
+  const [availableServices, setAvailableServices] = useState([]);
+  const [selectedService, setSelectedService] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-
-
-  // Service form state
   const [serviceForm, setServiceForm] = useState({
-    name: '',
-    type: 'muayene',
-    limit: '',
+    sutCode: '',
     price: '',
-    hospitalWallet: '',
-    hospitalName: ''
+    hospitalAddress: walletInfo?.address || ''
   });
 
-  // Statistics state
-  const [statistics, setStatistics] = useState({
-    totalHospitals: 0,
-    totalServices: 0,
-    totalRevenue: 0,
-    activeServices: 0
-  });
+  
 
+  // Static service requests list for hospital view (simulated)
+  const [serviceRequests, setServiceRequests] = useState([
+    {
+      id: 1,
+      patientWallet: '0x91d1B869E2F7F4b5C6d0A2c8D7C19fA3E65C08F1',
+      patientName: 'John Doe',
+      icdCode: 'ICD-A10',
+      sutCode: 'SUT-001',
+      date: new Date().toISOString(),
+      ipfsHash: null
+    },
+    {
+      id: 2,
+      patientWallet: '0x3f4A8852f8E2e23EbcD04F4F1b4C10C9a6d1E7c3',
+      patientName: 'Jane Smith',
+      icdCode: 'ICD-B20',
+      sutCode: 'SUT-045',
+      date: new Date(Date.now() - 86400000).toISOString(),
+      ipfsHash: 'sim-1700000000000'
+    },
+    {
+      id: 3,
+      patientWallet: '0x1234567890123456789012345678901234567890',
+      patientName: 'Michael Brown',
+      icdCode: 'ICD-C30',
+      sutCode: 'SUT-120',
+      date: new Date(Date.now() - 2 * 86400000).toISOString(),
+      ipfsHash: null
+    }
+  ]);
+
+  //fetch services and statistics
   useEffect(() => {
-    if (activeTab === 'hospitals') {
-      fetchHospitals();
-    } else if (activeTab === 'services') {
+    if (activeTab === 'services') {
       fetchServices();
-    } else if (activeTab === 'statistics') {
-      fetchStatistics();
+      fetchAvailableServices();
     }
   }, [activeTab]);
 
-  const fetchHospitals = async () => {
+  // Helpers for requests tab
+  const formatDate = (iso) => {
     try {
-      const response = await fetch('http://localhost:3001/hospitals');
-      if (response.ok) {
-        const data = await response.json();
-        setHospitals(data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching hospitals:', error);
+      return new Date(iso).toLocaleString('en-US');
+    } catch (_) {
+      return '-';
     }
   };
 
+  const uploadToIpfs = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch('http://localhost:3001/ipfs/upload', {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(err || 'Failed to upload to IPFS');
+    }
+    const data = await response.json();
+    return data?.data?.cid || data?.data?.path || data?.cid || data?.path;
+  };
+
+  const handleUploadClick = (id) => {
+    const el = document.getElementById(`file-input-${id}`);
+    if (el) el.click();
+  };
+
+  const handleFileChange = async (id, event) => {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setMessage({ type: 'error', text: 'Please upload PDF files only.' });
+      try { event.target.value = null; } catch (_) {}
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const cid = await uploadToIpfs(file);
+      setServiceRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ipfsHash: cid } : r)));
+      setMessage({ type: 'success', text: 'PDF report uploaded to IPFS and status marked as paid.' });
+    } catch (e) {
+      setMessage({ type: 'error', text: 'Report upload failed.' });
+    } finally {
+      setLoading(false);
+      try { event.target.value = null; } catch (_) {}
+    }
+  };
+
+  //fetch services
   const fetchServices = async () => {
     try {
       const response = await fetch('http://localhost:3001/hospitals/services');
@@ -62,20 +120,23 @@ const HospitalManagement = ({ walletInfo }) => {
     }
   };
 
-  const fetchStatistics = async () => {
+  
+
+  //fetch available services for dropdown
+  const fetchAvailableServices = async () => {
     try {
-      const response = await fetch('http://localhost:3001/hospitals/statistics/overview');
+      // Fetch current hospital services
+      const response = await fetch('http://localhost:3001/hospitals/services');
       if (response.ok) {
         const data = await response.json();
-        setStatistics(data.data || statistics);
+        setAvailableServices(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching statistics:', error);
+      console.error('Error fetching available services:', error);
     }
   };
 
-
-
+  //submit service
   const handleServiceSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -91,45 +152,71 @@ const HospitalManagement = ({ walletInfo }) => {
       const data = await response.json();
       
       if (data.success) {
-        setMessage({ type: 'success', text: 'Hastane hizmeti başarıyla eklendi' });
-        setServiceForm({ 
-          name: '', 
-          type: 'muayene', 
-          limit: '', 
-          price: '', 
-          hospitalWallet: '', 
-          hospitalName: '' 
+        setMessage({ 
+          type: 'success', 
+          text: 'Hospital service created successfully' 
         });
+        
+        // Reset form
+        setServiceForm({ 
+          sutCode: '', 
+          price: '', 
+          hospitalAddress: walletInfo?.address || '' 
+        });
+        
         fetchServices();
       } else {
-        setMessage({ type: 'error', text: data.message || 'Hata oluştu' });
+        setMessage({ type: 'error', text: data.message || 'Error' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Hizmet eklenirken hata oluştu' });
+      setMessage({ type: 'error', text: 'Error' });
     } finally {
       setLoading(false);
     }
   };
-
-
 
   const handleServiceChange = (e) => {
     const { name, value } = e.target;
     setServiceForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleUseService = async (serviceId) => {
-    if (!walletInfo?.address) {
-      setMessage({ type: 'error', text: 'Cüzdan bağlantısı gerekli' });
+  const handleServiceSelection = (e) => {
+    const sutCode = e.target.value;
+    setSelectedService(sutCode);
+    
+    // Find the current price of the selected service
+    const service = availableServices.find(s => s.sutCode === sutCode);
+    if (service) {
+      setServiceForm(prev => ({ 
+        ...prev, 
+        sutCode: sutCode,
+        price: service.price.toString()
+      }));
+    }
+  };
+
+  const handleUpdatePrice = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedService) {
+      setMessage({ type: 'error', text: 'Please select a service' });
+      return;
+    }
+
+    if (!serviceForm.price || isNaN(serviceForm.price) || parseFloat(serviceForm.price) <= 0) {
+      setMessage({ type: 'error', text: 'Please enter a valid price' });
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/hospitals/services/${serviceId}/use`, {
-        method: 'POST',
+      const response = await fetch('http://localhost:3001/hospitals/services/price', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientWallet: walletInfo.address })
+        body: JSON.stringify({ 
+          sutCode: selectedService, 
+          newPrice: parseFloat(serviceForm.price) 
+        })
       });
 
       const data = await response.json();
@@ -137,62 +224,27 @@ const HospitalManagement = ({ walletInfo }) => {
       if (data.success) {
         setMessage({ 
           type: 'success', 
-          text: `Hizmet kullanıldı. Kalan limit: ${data.data.remainingLimit}` 
+          text: 'Service price updated successfully' 
         });
         
-        // If there's a usage ID, automatically process payment
-        if (data.data.usageId) {
-          await processPayment(data.data.usageId);
-        }
+        // Reset form
+        setSelectedService('');
+        setServiceForm({ 
+          sutCode: '', 
+          price: '', 
+          hospitalAddress: walletInfo?.address || '' 
+        });
         
         fetchServices();
+        fetchAvailableServices();
       } else {
-        setMessage({ type: 'error', text: data.message || 'Hizmet kullanılırken hata oluştu' });
+        setMessage({ type: 'error', text: data.message || 'An error occurred while updating the price' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Hizmet kullanılırken hata oluştu' });
+      setMessage({ type: 'error', text: 'An error occurred while updating the price' });
     } finally {
       setLoading(false);
     }
-  };
-
-  const processPayment = async (usageId) => {
-    try {
-      const response = await fetch(`http://localhost:3001/hospitals/services/usage/${usageId}/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessage(prev => ({
-          type: 'success',
-          text: `${prev.text} Ödeme de başarıyla yapıldı.`
-        }));
-      } else {
-        setMessage(prev => ({
-          type: 'warning',
-          text: `${prev.text} Ancak ödeme işlemi başarısız: ${data.message}`
-        }));
-      }
-    } catch (error) {
-      setMessage(prev => ({
-        type: 'warning',
-        text: `${prev.text} Ancak ödeme işlemi başarısız.`
-      }));
-    }
-  };
-
-  const getServiceTypeLabel = (type) => {
-    const labels = {
-      'muayene': 'Muayene',
-      'radyoloji': 'Radyoloji',
-      'mr': 'MR Görüntüleme',
-      'laboratuvar': 'Laboratuvar',
-      'ameliyat': 'Ameliyat'
-    };
-    return labels[type] || type;
   };
 
   return (
@@ -202,7 +254,7 @@ const HospitalManagement = ({ walletInfo }) => {
           <div className="col-12">
             <h2 className="mb-4">
               <i className="fas fa-stethoscope me-2"></i>
-              Hastane Hizmet Yönetimi
+              Hospital Service Management
             </h2>
 
             {/* Navigation Tabs */}
@@ -213,16 +265,17 @@ const HospitalManagement = ({ walletInfo }) => {
                   onClick={() => setActiveTab('services')}
                 >
                   <i className="fas fa-stethoscope me-1"></i>
-                  Hizmet Yönetimi
+                  Service Management
                 </button>
               </li>
+              
               <li className="nav-item">
                 <button 
-                  className={`nav-link ${activeTab === 'statistics' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('statistics')}
+                  className={`nav-link ${activeTab === 'requests' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('requests')}
                 >
-                  <i className="fas fa-chart-bar me-1"></i>
-                  İstatistikler
+                  <i className="fas fa-file-medical me-1"></i>
+                  Service Requests
                 </button>
               </li>
             </ul>
@@ -247,81 +300,49 @@ const HospitalManagement = ({ walletInfo }) => {
                     <div className="card-header bg-success text-white">
                       <h5 className="card-title mb-0">
                         <i className="fas fa-plus me-2"></i>
-                        Yeni Hastane Hizmeti Ekle
+                        Add Hospital Service
                       </h5>
                     </div>
                     <div className="card-body">
                       <form onSubmit={handleServiceSubmit}>
                         <div className="mb-3">
-                          <label className="form-label">Hastane Adı</label>
+                          <label className="form-label">ICD/SUT Code</label>
                           <input
                             type="text"
-                            name="hospitalName"
-                            value={serviceForm.hospitalName}
+                            name="sutCode"
+                            value={serviceForm.sutCode}
                             onChange={handleServiceChange}
                             className="form-control"
+                            placeholder="e.g., 001"
                             required
                           />
                         </div>
                         <div className="mb-3">
-                          <label className="form-label">Hizmet Türü</label>
-                          <select
-                            name="type"
-                            value={serviceForm.type}
+                          <label className="form-label">Price (TRY)</label>
+                          <input
+                            type="number"
+                            name="price"
+                            value={serviceForm.price}
                             onChange={handleServiceChange}
                             className="form-control"
+                            placeholder="e.g., 100"
                             required
-                          >
-                            <option value="muayene">Muayene</option>
-                            <option value="radyoloji">Radyoloji</option>
-                            <option value="mr">MR Görüntüleme</option>
-                            <option value="laboratuvar">Laboratuvar</option>
-                            <option value="ameliyat">Ameliyat</option>
-                          </select>
-                        </div>
-                        <div className="row">
-                          <div className="col-md-6">
-                            <div className="mb-3">
-                              <label className="form-label">Limit</label>
-                              <input
-                                type="number"
-                                name="limit"
-                                value={serviceForm.limit}
-                                onChange={handleServiceChange}
-                                className="form-control"
-                                placeholder="Örn: 5"
-                                required
-                              />
-                            </div>
-                          </div>
-                          <div className="col-md-6">
-                            <div className="mb-3">
-                              <label className="form-label">Tutar (TL)</label>
-                              <input
-                                type="number"
-                                name="price"
-                                value={serviceForm.price}
-                                onChange={handleServiceChange}
-                                className="form-control"
-                                placeholder="Örn: 500"
-                                required
-                              />
-                            </div>
-                          </div>
+                          />
                         </div>
                         <div className="mb-3">
-                          <label className="form-label">Hastane Wallet Adresi</label>
+                          <label className="form-label">Hospital Address</label>
                           <input
                             type="text"
-                            name="hospitalWallet"
-                            value={serviceForm.hospitalWallet}
+                            name="hospitalAddress"
+                            value={serviceForm.hospitalAddress}
                             onChange={handleServiceChange}
                             className="form-control"
                             required
+                            readOnly={true}
                           />
                         </div>
                         <button type="submit" className="btn btn-success" disabled={loading}>
-                          {loading ? 'Kaydediliyor...' : 'Hizmet Ekle'}
+                          {loading ? 'Saving...' : 'Add'}
                         </button>
                       </form>
                     </div>
@@ -330,10 +351,63 @@ const HospitalManagement = ({ walletInfo }) => {
 
                 <div className="col-md-6">
                   <div className="card shadow">
+                    <div className="card-header bg-warning text-dark">
+                      <h5 className="card-title mb-0">
+                        <i className="fas fa-edit me-2"></i>
+                        Update Service Price
+                      </h5>
+                    </div>
+                    <div className="card-body">
+                      <form onSubmit={handleUpdatePrice}>
+                        <div className="mb-3">
+                          <label className="form-label">Select Service</label>
+                          <select
+                            className="form-select"
+                            value={selectedService}
+                            onChange={handleServiceSelection}
+                            required
+                          >
+                            <option value="">Select a service...</option>
+                            {availableServices.map((service, index) => (
+                              <option key={index} value={service.sutCode}>
+                                {service.sutCode} - {service.price} TRY
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label">New Price (TRY)</label>
+                          <input
+                            type="number"
+                            name="price"
+                            value={serviceForm.price}
+                            onChange={handleServiceChange}
+                            className="form-control"
+                            placeholder="Enter new price"
+                            min="0"
+                            step="0.01"
+                            required
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-warning" disabled={loading || !selectedService}>
+                          {loading ? 'Updating...' : 'Update Price'}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Services List */}
+            {activeTab === 'services' && (
+              <div className="row mt-4">
+                <div className="col-12">
+                  <div className="card shadow">
                     <div className="card-header">
                       <h5 className="card-title mb-0">
                         <i className="fas fa-list me-2"></i>
-                        Mevcut Hastane Hizmetleri
+                        Hospital Services
                       </h5>
                     </div>
                     <div className="card-body">
@@ -341,50 +415,35 @@ const HospitalManagement = ({ walletInfo }) => {
                         <table className="table table-striped">
                           <thead>
                             <tr>
-                              <th>Hizmet</th>
-                              <th>Tür</th>
-                              <th>Limit</th>
-                              <th>Tutar</th>
-                              <th>İşlem</th>
+                              <th>SUT Code</th>
+                              <th>Price (TRY)</th>
+                              <th>Status</th>
+                              <th>Last Updated</th>
                             </tr>
                           </thead>
                           <tbody>
                             {services.length === 0 ? (
                               <tr>
-                                <td colSpan="5" className="text-center text-muted">
-                                  Henüz hizmet kaydı yok
+                                <td colSpan="4" className="text-center text-muted">
+                                  No service record yet
                                 </td>
                               </tr>
                             ) : (
-                              services.map((service) => (
-                                <tr key={service.id}>
+                              services.map((service, index) => (
+                                <tr key={index}>
                                   <td>
-                                    <strong>{service.name}</strong>
-                                    <br />
-                                    <small className="text-muted">{service.hospitalName}</small>
+                                    <strong>{service.sutCode}</strong>
                                   </td>
                                   <td>
-                                    <span className="badge bg-info">
-                                      {getServiceTypeLabel(service.type)}
+                                    <strong className="text-success">{service.price} TRY</strong>
+                                  </td>
+                                  <td>
+                                    <span className={`badge ${service.isActive ? 'bg-success' : 'bg-danger'}`}>
+                                      {service.isActive ? 'Active' : 'Inactive'}
                                     </span>
                                   </td>
                                   <td>
-                                    <span className={`badge ${service.remainingLimit > 0 ? 'bg-success' : 'bg-danger'}`}>
-                                      {service.remainingLimit} / {service.limit}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    <strong>{service.price} TL</strong>
-                                  </td>
-                                  <td>
-                                    <button
-                                      className="btn btn-sm btn-primary"
-                                      onClick={() => handleUseService(service.id)}
-                                      disabled={service.remainingLimit <= 0 || loading}
-                                    >
-                                      <i className="fas fa-play me-1"></i>
-                                      Kullan
-                                    </button>
+                                    {service.lastUpdated ? new Date(service.lastUpdated * 1000).toLocaleDateString('en-US') : '-'}
                                   </td>
                                 </tr>
                               ))
@@ -398,25 +457,92 @@ const HospitalManagement = ({ walletInfo }) => {
               </div>
             )}
 
-            {/* Statistics Tab */}
-            {activeTab === 'statistics' && (
+            
+
+            {/* Requests Tab */}
+            {activeTab === 'requests' && (
               <div className="row">
-                <div className="col-md-3">
-                  <div className="card bg-success text-white text-center p-4 shadow">
-                    <h4>Toplam Hizmet</h4>
-                    <h2>{statistics.totalServices}</h2>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="card bg-info text-white text-center p-4 shadow">
-                    <h4>Toplam Gelir</h4>
-                    <h2>{statistics.totalRevenue.toLocaleString()} TL</h2>
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div className="card bg-warning text-dark text-center p-4 shadow">
-                    <h4>Aktif Hizmet</h4>
-                    <h2>{statistics.activeServices}</h2>
+                <div className="col-12">
+                  <div className="card shadow">
+                    <div className="card-header">
+                      <h5 className="card-title mb-0">
+                        <i className="fas fa-clipboard-list me-2"></i>
+                        Service Requests
+                      </h5>
+                    </div>
+                    <div className="card-body">
+                      <div className="table-responsive">
+                        <table className="table table-striped">
+                          <thead>
+                            <tr>
+                              <th>Patient Wallet</th>
+                              <th>Full Name</th>
+                              <th>ICD Code</th>
+                              <th>SUT Code</th>
+                              <th>Date</th>
+                              <th>Status</th>
+                              <th>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {serviceRequests.length === 0 ? (
+                              <tr>
+                                <td colSpan="5" className="text-center text-muted">No records</td>
+                              </tr>
+                            ) : (
+                              serviceRequests.map((req) => {
+                                const paid = !!req.ipfsHash;
+                                return (
+                                  <tr key={req.id}>
+                                    <td>
+                                      <code>{req.patientWallet.slice(0, 6)}...{req.patientWallet.slice(-4)}</code>
+                                    </td>
+                                    <td>{req.patientName}</td>
+                                    <td>{req.icdCode}</td>
+                                    <td>{req.sutCode || '-'}</td>
+                                    <td>{formatDate(req.date)}</td>
+                                    <td>
+                                      <span className={`badge ${paid ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                        {paid ? 'Paid' : 'Pending'}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      {!paid ? (
+                                        <>
+                                          <input
+                                            id={`file-input-${req.id}`}
+                                            type="file"
+                                            accept="application/pdf"
+                                            style={{ display: 'none' }}
+                                            onChange={(e) => handleFileChange(req.id, e)}
+                                          />
+                                          <button
+                                            className="btn btn-sm btn-primary"
+                                            onClick={() => handleUploadClick(req.id)}
+                                            disabled={loading}
+                                          >
+                                            {loading ? 'Uploading...' : 'Upload Report'}
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <a
+                                          className="btn btn-sm btn-outline-success"
+                                          href={`https://ipfs.io/ipfs/${req.ipfsHash}`}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          View Report
+                                        </a>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
