@@ -4,6 +4,7 @@ import './WalletConnect.css';
 const WalletConnect = ({ onWalletConnected, onSignUpClick, onTestClick }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
+  const logoSrc = (process.env.PUBLIC_URL ? process.env.PUBLIC_URL : '') + '/logo.jpg';
 
   //connect meta mask
   const connectMetaMask = async () => {
@@ -52,7 +53,7 @@ const WalletConnect = ({ onWalletConnected, onSignUpClick, onTestClick }) => {
         <div className="wallet-connect-card">
           <div className="logo-section">
             <div className="logo-icon">
-              <img src={process.env.PUBLIC_URL + '/logo.jpg'} alt="InsuraX Logo" />
+              <img src={logoSrc} alt="InsuraX Logo" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/logo.jpg'; }} />
             </div>
             <h1 className="app-title">InsuraX</h1>
             <p className="app-subtitle">Decentralized Health Insurance Platform</p>

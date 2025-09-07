@@ -145,87 +145,54 @@ function App() {
 
   const loadPolicyData = async () => {
     try {
-      // Always prefer locally saved defaults for immediate display
+      // Always use static/local defaults instead of contract
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+      let defaults = {
+        id: 1,
+        startDate: now.toISOString(),
+        endDate: oneYearLater.toISOString(),
+        isActive: true,
+        premium: '0.0030',
+        coverageAmount: (0.0030 * 100).toString(),
+        riskScore: 35,
+        rights: {
+          examinationRights: 5,
+          laboratoryRights: 5,
+          radiologyRights: 3,
+          outpatientRights: 5,
+          advancedDiagnosisRights: 2,
+          physiotherapyRights: 5,
+          examinationLimit: '1000',
+          laboratoryLimit: '1000',
+          radiologyLimit: '1000',
+          outpatientLimit: '1000',
+          advancedDiagnosisLimit: '5000',
+          physiotherapyLimit: '1000'
+        }
+      };
+
       const localDefaultsRaw = localStorage.getItem('lastCreatedPolicyDefaults');
       if (localDefaultsRaw) {
         try {
-          const localDefaults = JSON.parse(localDefaultsRaw);
-          setPolicyData({
-            ...localDefaults,
-            remainingVisits: localDefaults?.rights?.examinationRights ?? 0,
-            totalVisits: (localDefaults?.rights?.examinationRights ?? 0) + 5
-          });
-          setClaims([]);
-          return; // Do not fetch from contract when static defaults exist
+          defaults = JSON.parse(localDefaultsRaw);
         } catch (_) {}
       }
 
-      if (!blockchainService.isReady()) {
-        console.log('Blockchain not ready, using defaults if available');
-        const localDefaultsRaw = localStorage.getItem('lastCreatedPolicyDefaults');
-        if (localDefaultsRaw) {
-          try {
-            const localDefaults = JSON.parse(localDefaultsRaw);
-            setPolicyData({
-              ...localDefaults,
-              remainingVisits: localDefaults?.rights?.examinationRights ?? 0,
-              totalVisits: (localDefaults?.rights?.examinationRights ?? 0) + 5
-            });
-            setClaims([]);
-            return;
-          } catch (_) {}
-        }
-        setPolicyData({
-          id: null,
-          startDate: null,
-          endDate: null,
-          isActive: false,
-          premium: '0',
-          coverageAmount: '0',
-          riskScore: null,
-          remainingVisits: 0,
-          totalVisits: 0,
-        });
-        setClaims([]);
-        return;
-      }
-
-      // Load user policies
-      const policiesResult = await blockchainService.getUserPoliciesWithDetails(walletInfo.address);
-      if (policiesResult.success && policiesResult.data.length > 0) {
-        const activePolicy = policiesResult.data.find(p => p.isActive) || policiesResult.data[0];
-        setPolicyData({
-          ...activePolicy,
-          remainingVisits: activePolicy.rights.examinationRights,
-          totalVisits: activePolicy.rights.examinationRights + 5, // Mock total
-        });
-        // Clear bootstrap defaults once real data is loaded
-        localStorage.removeItem('lastCreatedPolicyDefaults');
-      }
-
-      // Load patient rights
-      const rightsResult = await blockchainService.getPatientRights(walletInfo.address, 1); // ServiceType.EXAMINATION
-      if (rightsResult.success) {
-        setPatientRights(rightsResult.data);
-      }
-
-      // Load service requests (claims)
-      const claimsResult = await blockchainService.getPatientServiceRequests(walletInfo.address);
-      if (claimsResult.success) {
-        const formattedClaims = claimsResult.data.map(claim => ({
-          id: claim.id,
-          date: new Date(claim.requestDate).toISOString().split('T')[0],
-          hospital: claim.hospital.substring(0, 10) + '...',
-          doctor: claim.doctor.substring(0, 10) + '...',
-          diagnosis: claim.icdCode,
-          amount: `${parseFloat(claim.amount).toFixed(4)} ETH`,
-          status: claim.paymentStatus === 2 ? 'Paid' : claim.paymentStatus === 1 ? 'Pending' : 'Processing'
-        }));
-        setClaims(formattedClaims);
-      }
+      setPolicyData({
+        ...defaults,
+        remainingVisits: defaults?.rights?.examinationRights ?? 0,
+        totalVisits: (defaults?.rights?.examinationRights ?? 0) + 5
+      });
+      setPatientRights({
+        remainingRights: defaults?.rights?.examinationRights ?? 0,
+        usedAmount: '0'
+      });
+      setClaims([]);
+      return;
     } catch (error) {
-      console.error('Error loading policy data:', error);
-      // Fallback to mock data
+      console.error('Error loading static policy data:', error);
       setPolicyData({
         id: null,
         startDate: null,
@@ -237,6 +204,7 @@ function App() {
         remainingVisits: 0,
         totalVisits: 0,
       });
+      setPatientRights(null);
       setClaims([]);
     }
   };
@@ -357,6 +325,13 @@ function App() {
     setIsAuthenticated(true);
     setShowTestPanel(false);
     setUserRole(role);
+    // Ensure blockchain service is initialized for test mode
+    try {
+      await blockchainService.initialize(
+        process.env.REACT_APP_CONTRACT_ADDRESS || '0x354eCFC21e08A1Dfc045a1565c98C4F26b444c49',
+        process.env.REACT_APP_RPC_URL || 'https://sepolia.base.org'
+      );
+    } catch (_) {}
     
     // Auto-redirect based on role
     switch (role) {

@@ -111,7 +111,12 @@ const RiskAnalysis = ({ onRiskCalculated, onViewPolicy }) => {
 
       setRiskScore(calculatedRiskScore);
 
-      // calculate premium with blockchain service
+      // ensure blockchain service is initialized
+      if (!blockchainService.isReady()) {
+        try {
+          await blockchainService.initialize();
+        } catch (_) {}
+      }
       if (!blockchainService.isReady()) {
         throw new Error('Blockchain connection not established');
       }
